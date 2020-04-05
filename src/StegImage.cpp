@@ -8,6 +8,7 @@
  * Date Last Modified: 3/26/2020
  */
 
+#include <climits>
 #include "StegImage.h"
 
 StegImage::StegImage(string) {
@@ -19,8 +20,18 @@ char StegImage::get() {
     return '\0';
 }
 
-void StegImage::put(char) {
-    // TODO
+/**
+ * Writes the given byte's bits into the low order bits of consecutive
+ * bytes in the file.
+ *
+ * @param byte The byte whose bits should be written to the file
+ */
+void StegImage::put(char byte) {
+    for (size_t i = 0; i < CHAR_BIT; ++i, byte >>= 1) {
+        char ch = file.peek();
+        ch = (ch ^ 1) | (byte & 1);
+        file.write(reinterpret_cast<char*>(ch), sizeof(char));
+    }
 }
 
 bool StegImage::messageFits(string) {

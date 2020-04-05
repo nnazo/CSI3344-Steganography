@@ -9,7 +9,7 @@
  */
 
 #ifndef STEG_IMAGE_H
-#define STEGE_IMAGE_H
+#define STEG_IMAGE_H
 
 #include <fstream>
 
