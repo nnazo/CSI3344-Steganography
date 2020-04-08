@@ -30,7 +30,7 @@ void StegImage::put(char byte) {
     for (size_t i = 0; i < CHAR_BIT; ++i, byte >>= 1) {
         char ch = file.peek();
         ch = (ch ^ 1) | (byte & 1);
-        file.write(reinterpret_cast<char*>(ch), sizeof(char));
+        file.write(&ch, sizeof(char));
     }
 }
 
