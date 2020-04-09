@@ -33,6 +33,9 @@ void StegImage::put(char byte) {
 
         // Read the last byte of the pixel
         char ch = file.peek();
+
+        // Change the low order bit of the byte in the file to be the current
+        // low order bit of the given byte
         ch = (ch ^ 1) | (byte & 1);
         file.write(&ch, sizeof(char));
     }
