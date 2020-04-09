@@ -24,10 +24,10 @@ StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
         file.read((char*)&height, size_t_size);
         file.read(&bitDepth, CHAR_BIT);
         file.read(&clrCode, CHAR_BIT);
-    }
 
-    // Second check: not palette based
-    inError = clrCode != PALETTE;
+        // Second check: not palette based
+        inError = clrCode != PALETTE;
+    }
 
     // Parse dimensions
     if (!inError) {
@@ -64,7 +64,7 @@ bool find(fstream& in, const string& searchString) {
     char ch;
 
     // Search for 'searchString'
-    while (i < searchString.length && in) {
+    while (i < searchString.size() && in) {
         ch = in.get();
 
         // Search for the next character in the stream
