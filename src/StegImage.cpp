@@ -10,8 +10,33 @@
 
 #include "StegImage.h"
 
-StegImage::StegImage(string) {
-    // TODO
+StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
+    char clrCode;
+
+    // First check: find the header chunk, if possible, in the file
+    inError = !find(file, HEADER);
+
+    // Get dimensions + bit depth
+    if (!inError) {
+        // Say that one three times fast.
+        const size_t size_t_size = sizeof(size_t);
+        file.read((char*)&width, size_t_size);
+        file.read((char*)&height, size_t_size);
+        file.read(&bitDepth, CHAR_BIT);
+        file.read(&clrCode, CHAR_BIT);
+    }
+
+    // Second check: not palette based
+    inError = clrCode != PALETTE;
+
+    // Parse dimensions
+    if (!inError) {
+        if (width >= TIPPING_POINT)
+            width = flip(width);
+        if (height >= TIPPING_POINT)
+            width = flip(width);
+        inError = find(file, DATA);
+    }
 }
 
 char StegImage::get() {
@@ -26,4 +51,32 @@ void StegImage::put(char) {
 bool StegImage::messageFits(string) {
     // TODO
     return false;
+}
+
+/*
+ * Finds the specified searchString in the provided file, from the current
+ * read position.
+ *
+ * Returns: whether the string was found.
+ */
+bool find(fstream& in, const string& searchString) {
+    int i = 0;
+    char ch;
+
+    // Search for 'searchString'
+    while (i < searchString.length && in) {
+        ch = in.get();
+
+        // Search for the next character in the stream
+        if (ch != searchString[i])
+            i = 0;
+        else
+            i++;
+    }
+
+    // Return whether the string was found
+    if (in)
+        return true;
+    else
+        return false;
 }
