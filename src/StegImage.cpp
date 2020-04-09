@@ -27,7 +27,11 @@ char StegImage::get() {
  * @param byte The byte whose bits should be written to the file
  */
 void StegImage::put(char byte) {
-    for (size_t i = 0; i < CHAR_BIT; ++i, byte >>= 1) {
+    for (size_t i = 0; i < CHAR_BIT && file; ++i, byte >>= 1) {
+        // Adjust the file pointer to the last byte of the pixel
+        file.seekg(bitDepth * sizeof(char) - sizeof(char), ios::cur);
+
+        // Read the last byte of the pixel
         char ch = file.peek();
         ch = (ch ^ 1) | (byte & 1);
         file.write(&ch, sizeof(char));
