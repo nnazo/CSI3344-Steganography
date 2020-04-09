@@ -19,9 +19,9 @@ class StegImage {
 private:
     fstream file;
     int bitDepth;
-    bool inError;
+    bool inError, hasAlpha;
 
-    int width, height;
+    size_t width, height;
 
 public:
     StegImage(string);
