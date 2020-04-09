@@ -8,6 +8,7 @@
  * Date Last Modified: 3/26/2020
  */
 
+#include <climits>
 #include "StegImage.h"
 
 StegImage::StegImage(string) {
@@ -23,7 +24,6 @@ void StegImage::put(char) {
     // TODO
 }
 
-bool StegImage::messageFits(string) {
-    // TODO
-    return false;
+bool StegImage::messageFits(string s) {
+    return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
 }
