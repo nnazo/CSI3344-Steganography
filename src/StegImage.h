@@ -23,6 +23,7 @@ private:
     fstream file;
     char bitDepth;
     bool inError;
+    bool hasAlpha;
 
     size_t width, height;
 

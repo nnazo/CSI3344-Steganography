@@ -18,12 +18,14 @@ StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
 
     // Get dimensions + bit depth
     if (!inError) {
-        // Say that one three times fast.
-        const size_t size_t_size = sizeof(size_t);
-        file.read((char*)&width, size_t_size);
-        file.read((char*)&height, size_t_size);
-        file.read(&bitDepth, CHAR_BIT);
-        file.read(&clrCode, CHAR_BIT);
+        // Read size
+        file.read((char*)&width, DIM_WIDTH);
+        file.read((char*)&height, DIM_WIDTH);
+
+        // Read bit depth and color code; detect alpha field
+        file.read(&bitDepth, DEPTH_TYPE_WIDTH);
+        file.read(&clrCode, DEPTH_TYPE_WIDTH);
+        hasAlpha = (clrCode & ALPHA_DETECT_MASK) != 0;
 
         // Second check: not palette based
         inError = clrCode != PALETTE;

@@ -23,4 +23,13 @@
 // PNG code for a palette-based PNG
 #define PALETTE 3
 
+// Width in bytes of the dimension fields in a PNG
+#define DIM_WIDTH 4
+
+// Width in bytes of the type and bit depth fields
+#define DEPTH_TYPE_WIDTH 1
+
+// Represents the bit containing the presence of an alpha field
+#define ALPHA_DETECT_MASK 0x04
+
 #endif // PNG_CONSTANTS_H
