@@ -12,16 +12,20 @@
 #define STEG_IMAGE_H
 
 #include <fstream>
+#include <climits>
+
+#include "PNGConstants.h"
 
 using namespace std;
 
 class StegImage {
 private:
     fstream file;
-    int bitDepth;
+    char bitDepth;
     bool inError;
+    bool hasAlpha;
 
-    int width, height;
+    size_t width, height;
 
 public:
     StegImage(string);
@@ -36,5 +40,22 @@ public:
 
     bool messageFits(string);
 };
+
+bool find(fstream&, const string&);
+
+template <class T>
+T flip(T toFlip) {
+    T buffer = 0;
+    const int MAX = sizeof(T);
+
+    for (int i = 0; i < MAX; i++) {
+        buffer <<= 1;
+        buffer |= (toFlip & 0xF);
+        toFlip >>= 1;
+    }
+
+    return buffer;
+}
+
 
 #endif // STEG_IMAGE_H
