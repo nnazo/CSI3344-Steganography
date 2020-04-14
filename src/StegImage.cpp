@@ -11,13 +11,13 @@
 #include <climits>
 #include "StegImage.h"
 #include <iostream>
+#include <cassert>
 
-StegImage::StegImage(string filename) : file(filename, fstream::in | fstream::binary) {
+StegImage::StegImage(string filename) : file(filename, fstream::in |
+    fstream::out | fstream::binary), writeReady(false) {
     char clrCode;
 
     // First check: find the header chunk, if possible, in the file
-    file.seekg(0, ios::beg);
-    file.seekp(0, ios::beg);
     inError = !find(file, HEADER);
 
     // Get dimensions + bit depth
@@ -43,9 +43,29 @@ StegImage::StegImage(string filename) : file(filename, fstream::in | fstream::bi
             height = flip(height);
 
         // Ensure there is an IDAT chunk (error check), then seek its end.
-        inError = find(file, DATA);
-        file.close();
+        inError = !find(file, DATA);
     }
+}
+
+void StegImage::prepToWrite() {
+    streampos init = file.tellg();
+    writer.open(IMG_NAME, ios::out | ios::binary);
+
+    // Copy data
+    file.seekg(ios::beg);
+    while (file)
+        writer.put(file.get());
+
+    // Re-open writer
+    writer.clear();
+    writer.seekp(init, ios::beg);
+
+    // Re-open file
+    file.clear();
+    file.seekg(init, ios::beg);
+    file.seekp(init, ios::beg);
+
+    writeReady = true;
 }
 
 char StegImage::get() {
@@ -66,7 +86,7 @@ char StegImage::get() {
     // Prep to read
     streampos pos = file.tellg();
     file.sync();
-    file.seekg(pos, ios::cur);
+    file.seekg(pos, ios::beg);
 
     while (bitsRemaining > 0) {
         // Read byte with encoded data
@@ -75,7 +95,7 @@ char StegImage::get() {
         }
 
         // Prepare to read
-        file.read((char*) &buffer, sizeof(char));
+        file.read((char*)&buffer, sizeof(char));
         buffer <<= bitDepth - 1;
         bitCntr = CHAR_BIT - bitDepth + 1;
 
@@ -115,13 +135,14 @@ void StegImage::put(char byte) {
     size_t bitsPut = 0, bitPos;
 
     // Prep to write
+    assert(writeReady == true);
     while (bitsPut < CHAR_BIT) {
         // Skip bytes in the file to find the low order bit if necessary
         if (BYTES_TO_SKIP > 0) {
             file.seekg(BYTES_TO_SKIP, ios::cur);
         }
         // Read the byte containing low order bit(s)
-        data = file.peek();
+        file.read(&data, 1);
         for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT; bitPos -= depth, byte >>= 1) {
             // Shift left to get a zero bit in the correct bit position
             char clearBitMask = 0xFE << (bitPos - depth);
@@ -136,7 +157,7 @@ void StegImage::put(char byte) {
             ++bitsPut;
         }
         // Replace the byte in the file with the bit embedded byte
-        file.write(&data, 1);
+        writer.write(&data, 1);
     }
     file.flush();
 }

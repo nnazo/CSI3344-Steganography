@@ -18,6 +18,9 @@
 
 using namespace std;
 
+// Output file name
+#define IMG_NAME "result.png"
+
 class StegImage {
 private:
     fstream file;
@@ -27,6 +30,9 @@ private:
 
     size_t width, height;
 
+    ofstream writer;
+    bool writeReady;
+
 public:
     StegImage(string);
 
@@ -34,7 +40,11 @@ public:
         if (file.is_open()) {
             file.close();
         }
+        if (writer.is_open())
+            writer.close();
     }
+
+    void prepToWrite();
 
     char get();
 
