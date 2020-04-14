@@ -11,10 +11,9 @@
 #include <climits>
 #include "StegImage.h"
 #include <iostream>
-#include <cassert>
 
 StegImage::StegImage(string filename) : file(filename, fstream::in |
-    fstream::out | fstream::binary), writeReady(false) {
+    fstream::out | fstream::binary), filename(filename) {
     char clrCode;
 
     // First check: find the header chunk, if possible, in the file
@@ -45,27 +44,10 @@ StegImage::StegImage(string filename) : file(filename, fstream::in |
         // Ensure there is an IDAT chunk (error check), then seek its end.
         inError = !find(file, DATA);
     }
-}
 
-void StegImage::prepToWrite() {
-    streampos init = file.tellg();
-    writer.open(IMG_NAME, ios::out | ios::binary);
-
-    // Copy data
-    file.seekg(ios::beg);
-    while (file)
-        writer.put(file.get());
-
-    // Re-open writer
-    writer.clear();
-    writer.seekp(init, ios::beg);
-
-    // Re-open file
-    file.clear();
-    file.seekg(init, ios::beg);
-    file.seekp(init, ios::beg);
-
-    writeReady = true;
+    // Save data section address
+    if (!inError)
+        start = file.tellg();
 }
 
 char StegImage::get() {
@@ -135,7 +117,6 @@ void StegImage::put(char byte) {
     size_t bitsPut = 0, bitPos;
 
     // Prep to write
-    assert(writeReady == true);
     while (bitsPut < CHAR_BIT) {
         // Skip bytes in the file to find the low order bit if necessary
         if (BYTES_TO_SKIP > 0) {
@@ -157,14 +138,28 @@ void StegImage::put(char byte) {
             ++bitsPut;
         }
         // Replace the byte in the file with the bit embedded byte
-        writer.write(&data, 1);
+        buffer.push_back(data);
     }
-    file.flush();
 }
 
 bool StegImage::messageFits(string) {
     // TODO
     return false;
+}
+
+void StegImage::flushAndClose() {
+    // Create write handle
+    file.close();
+    file.clear();
+    file.open(filename, ios::ate | ios::in | ios::out | ios::binary);
+    file.seekp(start, ios::beg);
+    assert(!file == false);
+
+    // Write data
+    for (char c : buffer)
+        file.write(&c, 1);
+    file.flush();
+    file.close();
 }
 
 /*

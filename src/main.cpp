@@ -32,13 +32,12 @@ int main(int argc, char **argv) {
 
     // Write test
     string s = in.out;
-    image->prepToWrite();
     for (char c : s)
         image->put(c);
     delete image;
 
     // Read back
-    image = new StegImage(IMG_NAME);
+    image = new StegImage(in.image);
     for (int i = 0; i < s.length(); i++) {
         char c2 = image->get();
         cout << c2;

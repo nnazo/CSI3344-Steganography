@@ -13,13 +13,12 @@
 
 #include <fstream>
 #include <climits>
+#include <cassert>
+#include <vector>
 
 #include "PNGConstants.h"
 
 using namespace std;
-
-// Output file name
-#define IMG_NAME "result.png"
 
 class StegImage {
 private:
@@ -30,27 +29,27 @@ private:
 
     size_t width, height;
 
-    ofstream writer;
-    bool writeReady;
+    vector<char> buffer;
+    streampos start;
+    string filename;
 
 public:
     StegImage(string);
 
     ~StegImage() {
-        if (file.is_open()) {
+        if (file.is_open() && buffer.size() > 0)
+            flushAndClose();
+        else if (file.is_open())
             file.close();
-        }
-        if (writer.is_open())
-            writer.close();
     }
-
-    void prepToWrite();
 
     char get();
 
     void put(char);
 
     bool messageFits(string);
+
+    void flushAndClose();
 };
 
 bool find(fstream&, const string&);
