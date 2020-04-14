@@ -10,11 +10,14 @@
 
 #include <climits>
 #include "StegImage.h"
+#include <iostream>
 
-StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
+StegImage::StegImage(string filename) : file(filename, fstream::in | fstream::binary) {
     char clrCode;
 
     // First check: find the header chunk, if possible, in the file
+    file.seekg(0, ios::beg);
+    file.seekp(0, ios::beg);
     inError = !find(file, HEADER);
 
     // Get dimensions + bit depth
@@ -29,7 +32,7 @@ StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
         hasAlpha = (clrCode & ALPHA_DETECT_MASK) != 0;
 
         // Second check: not palette based
-        inError = clrCode != PALETTE;
+        inError = clrCode == PALETTE;
     }
 
     // Parse dimensions
@@ -37,8 +40,11 @@ StegImage::StegImage(string filename) : file(filename, ifstream::binary) {
         if (width >= TIPPING_POINT)
             width = flip(width);
         if (height >= TIPPING_POINT)
-            width = flip(width);
+            height = flip(height);
+
+        // Ensure there is an IDAT chunk (error check), then seek its end.
         inError = find(file, DATA);
+        file.close();
     }
 }
 
@@ -46,27 +52,30 @@ char StegImage::get() {
     char result = '\0';
     int bitsRemaining = CHAR_BIT;
 
-    char buffer;
+    unsigned char buffer;
     int bitCntr;
 
     // Create a mask to isolate the high-order bit
     char mask = 0x1;
     mask <<= CHAR_BIT - 1;
-    mask = ~mask;
 
     // Compute whether a certain number of bytes need to be skipped.
     const int BYTES_TO_SKIP = (bitDepth / CHAR_BIT) - 1;
     const int DEPTH = bitDepth > CHAR_BIT ? CHAR_BIT : bitDepth;
 
+    // Prep to read
+    streampos pos = file.tellg();
+    file.sync();
+    file.seekg(pos, ios::cur);
+
     while (bitsRemaining > 0) {
         // Read byte with encoded data
         if (BYTES_TO_SKIP > 0) {
-            file.seekp(BYTES_TO_SKIP, ios::cur);
             file.seekg(BYTES_TO_SKIP, ios::cur);
         }
-        buffer = file.get();
 
         // Prepare to read
+        file.read((char*) &buffer, sizeof(char));
         buffer <<= bitDepth - 1;
         bitCntr = CHAR_BIT - bitDepth + 1;
 
@@ -97,24 +106,27 @@ void StegImage::put(char byte) {
     const int BYTES_TO_SKIP = (bitDepth / CHAR_BIT) - 1;
     // Depth is maximum of 8, since we are reading a byte at a time and
     // bytes are skipped if the bitDepth is large
-    size_t depth = bitDepth;
+    int depth = bitDepth;
     if (depth > CHAR_BIT) {
         depth = CHAR_BIT;
     }
     // Loop until all bits in the character have been embedded.
-    size_t bitsPut = 0;
+    char data;
+    size_t bitsPut = 0, bitPos;
+
+    // Prep to write
     while (bitsPut < CHAR_BIT) {
         // Skip bytes in the file to find the low order bit if necessary
         if (BYTES_TO_SKIP > 0) {
             file.seekg(BYTES_TO_SKIP, ios::cur);
         }
         // Read the byte containing low order bit(s)
-        char data = file.peek();
-        for (size_t bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT; bitPos -= depth, byte >>= 1) {
+        data = file.peek();
+        for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT; bitPos -= depth, byte >>= 1) {
             // Shift left to get a zero bit in the correct bit position
             char clearBitMask = 0xFE << (bitPos - depth);
             // Create a mask for pos to fill one's where zeros got filled
-            char correctionMask = 0xFF >> (CHAR_BIT - bitPos + depth);
+            unsigned char correctionMask = 0xFF >> (CHAR_BIT - bitPos + depth);
             // Fill with ones where zeros got filled, except for the bit position
             clearBitMask |= correctionMask;
             // Move the low order bit of the byte to the bit position
@@ -124,8 +136,9 @@ void StegImage::put(char byte) {
             ++bitsPut;
         }
         // Replace the byte in the file with the bit embedded byte
-        file.write(&data, sizeof(char));
+        file.write(&data, 1);
     }
+    file.flush();
 }
 
 bool StegImage::messageFits(string) {
@@ -155,8 +168,10 @@ bool find(fstream& in, const string& searchString) {
     }
 
     // Return whether the string was found
-    if (in)
+    if (in) {
+        // Seek put head to the correct position, if needed
+        in.seekp(in.tellg(), ios::beg);
         return true;
-    else
+    } else
         return false;
 }

@@ -31,7 +31,9 @@ public:
     StegImage(string);
 
     ~StegImage() {
-        if (file) file.close();
+        if (file.is_open()) {
+            file.close();
+        }
     }
 
     char get();
@@ -49,9 +51,9 @@ T flip(T toFlip) {
     const int MAX = sizeof(T);
 
     for (int i = 0; i < MAX; i++) {
-        buffer <<= 1;
-        buffer |= (toFlip & 0xF);
-        toFlip >>= 1;
+        buffer <<= 8;
+        buffer |= (toFlip & 0xFF);
+        toFlip >>= 8;
     }
 
     return buffer;
