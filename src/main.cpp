@@ -9,10 +9,94 @@
  */
 
 #include <iostream>
+#include <cstdlib>
+#include "StegImage.h"
 
 using namespace std;
 
+enum Mode { EMBED, DECODE };
+struct Input {
+    const Mode mode;
+    const string image;
+    const string out;
+};
+
+void verifyPngExtension(string file);
+Input getInput(int argc, char **argv);
+string readMessage(const StegImage &image, const string &file);
+void writeMessage(const StegImage &image, const string &message);
+
 int main(int argc, char **argv) {
-	
-	return 0;
+    Input in = getInput(argc, argv);
+    StegImage* image = new StegImage(in.image);
+
+    // Write test
+    string s = in.out;
+    for (char c : s)
+        image->put(c);
+    delete image;
+
+    // Read back
+    image = new StegImage(in.image);
+    for (int i = 0; i < s.length(); i++) {
+        char c2 = image->get();
+        cout << c2;
+    }
+
+    if (in.mode == EMBED) {
+        // TODO
+    } else if (in.mode == DECODE) {
+        // TODO
+    }
+    return 0;
+}
+
+void verifyPngExtension(string file) {
+    if (file.find(".png") != file.size() - 4) {
+        cerr << "usage: must provide a PNG image to embed a message" << endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+Input getInput(int argc, char **argv) {
+    // Check number of arguments
+    if (argc != 4) {
+        cerr << R"(usage: ./CSI3344_Steganography -e "img.png" "message")" << endl;
+        cerr << R"(       ./CSI3344_Steganography -d "steg.png" "message.txt")" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    Mode mode;
+    string flag = argv[1];
+    string img = argv[2];
+    string out = argv[3];
+
+    // Verify input PNG filename
+    verifyPngExtension(img);
+
+    // Check flag mode
+    if (flag == "-e") {
+        mode = EMBED;
+    } else if (flag == "-d") {
+        mode = DECODE;
+        verifyPngExtension(out);
+    } else {
+        cerr << "usage: must provide -e or -d flag" << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    return Input {
+        mode,
+        img,
+        out,
+    };
+}
+
+string readMessage(const StegImage &image, const string &file) {
+    // TODO
+    return "";
+}
+
+void writeMessage(const StegImage &image, const string &message) {
+    // TODO
 }

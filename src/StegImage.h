@@ -9,25 +9,38 @@
  */
 
 #ifndef STEG_IMAGE_H
-#define STEGE_IMAGE_H
+#define STEG_IMAGE_H
 
 #include <fstream>
+#include <climits>
+#include <cassert>
+#include <vector>
+
+#include "PNGConstants.h"
 
 using namespace std;
 
 class StegImage {
 private:
     fstream file;
-    int bitDepth;
+    char bitDepth;
     bool inError;
+    bool hasAlpha;
 
-    int width, height;
+    size_t width, height;
+
+    vector<char> buffer;
+    streampos start;
+    string filename;
 
 public:
     StegImage(string);
 
     ~StegImage() {
-        if (file) file.close();
+        if (file.is_open() && buffer.size() > 0)
+            flushAndClose();
+        else if (file.is_open())
+            file.close();
     }
 
     char get();
@@ -35,6 +48,25 @@ public:
     void put(char);
 
     bool messageFits(string);
+
+    void flushAndClose();
 };
+
+bool find(fstream&, const string&);
+
+template <class T>
+T flip(T toFlip) {
+    T buffer = 0;
+    const int MAX = sizeof(T);
+
+    for (int i = 0; i < MAX; i++) {
+        buffer <<= 8;
+        buffer |= (toFlip & 0xFF);
+        toFlip >>= 8;
+    }
+
+    return buffer;
+}
+
 
 #endif // STEG_IMAGE_H
