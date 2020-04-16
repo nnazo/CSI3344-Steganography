@@ -28,6 +28,21 @@ void writeMessage(const StegImage &image, const string &message);
 
 int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
+    StegImage* image = new StegImage(in.image);
+
+    // Write test
+    string s = in.out;
+    for (char c : s)
+        image->put(c);
+    delete image;
+
+    // Read back
+    image = new StegImage(in.image);
+    for (int i = 0; i < s.length(); i++) {
+        char c2 = image->get();
+        cout << c2;
+    }
+
     if (in.mode == EMBED) {
         // TODO
     } else if (in.mode == DECODE) {
