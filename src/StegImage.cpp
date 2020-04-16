@@ -143,8 +143,7 @@ void StegImage::put(char byte) {
 }
 
 bool StegImage::messageFits(string) {
-    // TODO
-    return false;
+    return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
 }
 
 void StegImage::flushAndClose() {
