@@ -165,7 +165,11 @@ void StegImage::flushAndClose() {
  * finds the next IDAT chunk
  */
 void StegImage::seekNextIdat() {
-    
+    // TODO
+    // calls find(DATA)
+    // backs up by 8 bytes to read in idatPos
+    // if this results in a value greater than TIPPING_POINT, call flip(idatPos)
+    // fast-forward 4 more bytes to put into the correct position.
 }
 
 /*
