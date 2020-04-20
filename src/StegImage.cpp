@@ -142,7 +142,7 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(string s) {
+bool StegImage::messageFits(const string& s) {
     return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
 }
 
@@ -161,7 +161,12 @@ void StegImage::flushAndClose() {
     file.close();
 }
 
-//seekNExtIdat goes here
+/**
+ * finds the next IDAT chunk
+ */
+void StegImage::seekNextIdat() {
+    
+}
 
 /*
  * Finds the specified searchString in the provided file, from the current
