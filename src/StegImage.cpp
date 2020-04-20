@@ -161,6 +161,8 @@ void StegImage::flushAndClose() {
     file.close();
 }
 
+//seekNExtIdat goes here
+
 /*
  * Finds the specified searchString in the provided file, from the current
  * read position.
