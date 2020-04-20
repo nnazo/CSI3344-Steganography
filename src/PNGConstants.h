@@ -1,5 +1,5 @@
 /*
- * Author: Jacob Curtis, Joseph Perez, Josh Huertas, Joseph Yu, Micah Schiewe
+ * Author: Jacob Curtis, Joseph Perex, Josh Huertas, Joseph Yu, Micah Schiewe
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
