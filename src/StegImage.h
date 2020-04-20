@@ -47,9 +47,11 @@ public:
 
     void put(char);
 
-    bool messageFits(string);
+    bool messageFits(const string&);
 
     void flushAndClose();
+
+    void seekNextIdat();
 };
 
 bool find(fstream&, const string&);

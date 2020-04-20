@@ -142,7 +142,7 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(string) {
+bool StegImage::messageFits(const string& s) {
     return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
 }
 
@@ -152,7 +152,7 @@ void StegImage::flushAndClose() {
     file.clear();
     file.open(filename, ios::ate | ios::in | ios::out | ios::binary);
     file.seekp(start, ios::beg);
-    assert(!file == false);
+    assert(!!file);
 
     // Write data
     for (char c : buffer)
@@ -160,6 +160,20 @@ void StegImage::flushAndClose() {
     file.flush();
     file.close();
 }
+
+/*
+ * finds the data given in the png file,
+ * then backs up by 8 bytes to read in idatPos
+ * if this results in a value greater than TIPPING_POINT,
+ * flip(idatPos) then fast-forward 4 more bytes to put
+ * into the correct position.
+ *
+ *
+ */
+void seekNextIdat(){
+
+}
+
 
 /*
  * Finds the specified searchString in the provided file, from the current
