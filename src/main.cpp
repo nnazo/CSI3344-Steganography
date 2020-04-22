@@ -17,86 +17,103 @@ using namespace std;
 enum Mode { EMBED, DECODE };
 struct Input {
     const Mode mode;
-    const string image;
-    const string out;
+    string image;
+    string out;
+    string msg;
 };
 
-void verifyPngExtension(string file);
+void verifyExtension(const string &file, const string &extension);
 Input getInput(int argc, char **argv);
-string readMessage(const StegImage &image, const string &file);
-void writeMessage(const StegImage &image, const string &message);
+void readMessage(StegImage &image, const string &file);
+void writeMessage(StegImage &image, const string &message);
 
 int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
-    StegImage* image = new StegImage(in.image);
-
-    // Write test
-    string s = in.out;
-    for (char c : s)
-        image->put(c);
-    delete image;
-
-    // Read back
-    image = new StegImage(in.image);
-    for (int i = 0; i < s.length(); i++) {
-        char c2 = image->get();
-        cout << c2;
-    }
 
     if (in.mode == EMBED) {
-        // TODO
+        ifstream messageFile(in.msg);
+        if (!messageFile) {
+            cerr << "Error: Could not open " << in.msg << endl;
+            exit(EXIT_FAILURE);
+        }
+        string message;
+        getline(messageFile, message, 'n');
+        StegImage image(in.image/*, in.out*/);
+        writeMessage(image, message);
     } else if (in.mode == DECODE) {
-        // TODO
+        StegImage image(in.image/*, in.out*/);
+        readMessage(image, in.msg);
     }
+
     return 0;
 }
 
-void verifyPngExtension(string file) {
-    if (file.find(".png") != file.size() - 4) {
-        cerr << "usage: must provide a PNG image to embed a message" << endl;
+void verifyExtension(const string &file, const string &extension) {
+    if (file.find(extension) != file.size() - 4) {
+        cerr << "usage: must provide a " << extension << " file" << endl;
         exit(EXIT_FAILURE);
     }
 }
 
 Input getInput(int argc, char **argv) {
     // Check number of arguments
-    if (argc != 4) {
-        cerr << R"(usage: ./CSI3344_Steganography -e "img.png" "message")" << endl;
-        cerr << R"(       ./CSI3344_Steganography -d "steg.png" "message.txt")" << endl;
+    if (argc < 4 || argc > 5) {
+        cerr << R"(usage: ./CSI3344_Steganography -e "img.pbm" "steg.pbm" "message.txt")" << endl;
+        cerr << R"(       ./CSI3344_Steganography -d "steg.pbm" "message.txt")" << endl;
         exit(EXIT_FAILURE);
     }
 
     Mode mode;
-    string flag = argv[1];
-    string img = argv[2];
-    string out = argv[3];
-
-    // Verify input PNG filename
-    verifyPngExtension(img);
-
-    // Check flag mode
-    if (flag == "-e") {
+    string flag, img, out, msg;
+    flag = argv[1];
+    img = argv[2];
+    if (argc == 5 && flag == "-e") {
+        out = argv[3];
+        msg = argv[4];
         mode = EMBED;
-    } else if (flag == "-d") {
+    } else if (argc == 4 && flag == "-d") {
+        msg = argv[3];
         mode = DECODE;
-        verifyPngExtension(out);
     } else {
         cerr << "usage: must provide -e or -d flag" << endl;
         exit(EXIT_FAILURE);
     }
 
+    // Verify input PBM extension
+    verifyExtension(img, ".pbm");
+    if (mode == EMBED)
+        verifyExtension(out, ".pbm");
+    else
+        verifyExtension(msg, ".txt");
     return Input {
         mode,
         img,
         out,
+        msg,
     };
 }
 
-string readMessage(const StegImage &image, const string &file) {
-    // TODO
-    return "";
+void readMessage(StegImage &image, const string &file) {
+    ofstream messageFile(file);
+    unsigned int length = 0;
+
+    for (int i = 0; i < 32; ++i) {
+        unsigned char bit = image.get() << 7;
+        length |= bit;
+        length >>= 1;
+    }
+
+    for (unsigned int i = 0; i < length; ++i) {
+        char ch = image.get();
+        messageFile << ch;
+        cout << ch;
+    }
+
+    messageFile.close();
 }
 
-void writeMessage(const StegImage &image, const string &message) {
-    // TODO
+void writeMessage(StegImage &image, const string &message) {
+    for (char ch : message) {
+        image.put(ch);
+    }
 }
