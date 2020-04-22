@@ -136,8 +136,11 @@ void writeMessage(StegImage &image, const string &msgFile, const string &out) {
         size >>= 8;
     }
 
+    file.seekg(0, ios::beg);
     while (file) {
-        image.put(file.get());
+        char ch;
+        file.read(&ch, 1);
+        image.put(ch);
     }
 
     file.close();
