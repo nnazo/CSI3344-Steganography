@@ -32,15 +32,8 @@ int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
 
     if (in.mode == EMBED) {
-        ifstream messageFile(in.msg);
-        if (!messageFile) {
-            cerr << "Error: Could not open " << in.msg << endl;
-            exit(EXIT_FAILURE);
-        }
-        string message;
-        getline(messageFile, message, '\0');
         StegImage image(in.image);
-        writeMessage(image, message);
+        writeMessage(image, in.msg);
     } else if (in.mode == DECODE) {
         StegImage image(in.image);
         readMessage(image, in.msg);
@@ -53,8 +46,8 @@ void verifyExtension(const string &file, const string &extension, int mode, int 
     if (file.find(extension) != file.size() - extension.size()) {
         cerr << "usage: must provide a " << extension << " file for ";
         switch (arg) {
-            case 1: cerr << "the input image file"; break;
-            case 2: {
+            case 2: cerr << "the input image file"; break;
+            case 3: {
                 if (mode == EMBED) {
                     cerr << "the output image file";
                 } else {
@@ -62,7 +55,8 @@ void verifyExtension(const string &file, const string &extension, int mode, int 
                 }
                 break;
             }
-            case 3: cerr << "the input message file"; break;
+            case 4: cerr << "the input message file"; break;
+            default: cerr << "unspecified argument";
         }
         cerr << endl;
         exit(EXIT_FAILURE);
@@ -94,12 +88,12 @@ Input getInput(int argc, char **argv) {
     }
 
     // Verify input PBM extension
-    verifyExtension(img, ".pbm", 1, mode);
+    verifyExtension(img, ".pbm", 2, mode);
     if (mode == EMBED) {
-        verifyExtension(out, ".pbm", 2, mode);
-        verifyExtension(msg, ".txt", 3, mode);
+        verifyExtension(out, ".pbm", 3, mode);
+        verifyExtension(msg, ".txt", 4, mode);
     } else {
-        verifyExtension(msg, ".txt", 2, mode);
+        verifyExtension(msg, ".txt", 3, mode);
     }
     return Input {
         mode,
