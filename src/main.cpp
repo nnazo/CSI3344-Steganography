@@ -38,10 +38,10 @@ int main(int argc, char **argv) {
         }
         string message;
         getline(messageFile, message, 'n');
-        StegImage image(in.image/*, in.out*/);
+        StegImage image(in.image);
         writeMessage(image, message);
     } else if (in.mode == DECODE) {
-        StegImage image(in.image/*, in.out*/);
+        StegImage image(in.image);
         readMessage(image, in.msg);
     }
 
@@ -97,10 +97,9 @@ void readMessage(StegImage &image, const string &file) {
     ofstream messageFile(file);
     unsigned int length = 0;
 
-    for (int i = 0; i < 32; ++i) {
-        unsigned char bit = image.get() << 7;
-        length |= bit;
-        length >>= 1;
+    for (int i = 0; i < 4; ++i) {
+        unsigned int byte = image.get() << (8 * i);
+        length |= byte;
     }
 
     for (unsigned int i = 0; i < length; ++i) {
@@ -113,7 +112,17 @@ void readMessage(StegImage &image, const string &file) {
 }
 
 void writeMessage(StegImage &image, const string &message) {
+    unsigned int size = message.size();
+
+    for (int i = 0; i < 4; ++i) {
+        unsigned char byte = 0x000000FF & size;
+        image.put(byte);
+        size >>= 8;
+    }
+
     for (char ch : message) {
         image.put(ch);
     }
+
+    image.flushAndClose(/*in.out*/);
 }
