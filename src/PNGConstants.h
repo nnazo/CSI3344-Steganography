@@ -11,6 +11,9 @@
 #ifndef PNG_CONSTANTS_H
 #define PNG_CONSTANTS_H
 
+// Identifies the PPM file type we need
+#define MAGIC_NUMBER_STRING "p6"
+
 // Identifies the PNG header
 #define HEADER "IHDR"
 
