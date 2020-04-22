@@ -146,19 +146,42 @@ bool StegImage::messageFits(const string &s) {
     return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
 }
 
-void StegImage::flushAndClose() {
-    // Create write handle
+void StegImage::flushAndClose(string outputFilename) {
+    // Output ofstream
+    ofstream outFile;
+    outFile.open(outputFilename, ios::binary);
+
+    // Reopen input image file
     file.close();
     file.clear();
-    file.open(filename, ios::ate | ios::in | ios::out | ios::binary);
-    file.seekp(start, ios::beg);
+    file.open();
+
+    // Copying file header
+    char c_buffer;
+    while (file.tellg() != start){
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
+    }
     assert(!file == false);
 
-    // Write data
-    for (char c : buffer)
-        file.write(&c, 1);
-    file.flush();
+    // Write data to Output file
+    file.seekg(buffer.size(), fstream::cur);
+
+    // Writing changed pixels
+    for(char c : buffer){
+        outFile.write(&c_buffer, 1);
+    }
+
+    // Writing unchanged pixels
+    while (file){
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
+    }
+
+    outFile.flush();
+    outFile.close();
     file.close();
+    file.clear();
 }
 
 /*
