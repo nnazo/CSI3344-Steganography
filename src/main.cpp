@@ -140,5 +140,6 @@ void writeMessage(StegImage &image, const string &msgFile, const string &out) {
         image.put(file.get());
     }
 
+    file.close();
     image.flushAndClose(out);
 }
