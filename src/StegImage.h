@@ -37,9 +37,7 @@ public:
     StegImage(string);
 
     ~StegImage() {
-        if (file.is_open() && buffer.size() > 0)
-            flushAndClose();
-        else if (file.is_open())
+        if (file.is_open())
             file.close();
     }
 
@@ -49,7 +47,7 @@ public:
 
     bool messageFits(const string&);
 
-    void flushAndClose();
+    void flushAndClose(string);
 
     void seekNextIdat();
 };
