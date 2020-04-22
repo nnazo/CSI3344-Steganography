@@ -122,7 +122,7 @@ void readMessage(StegImage &image, const string &file) {
 }
 
 void writeMessage(StegImage &image, const string &msgFile) {
-    ifstream file(msgFile);
+    ifstream file(msgFile, ios::binary);
     if (!file) {
         cerr << "Error: Could not open " << msgFile << endl;
         exit(EXIT_FAILURE);
