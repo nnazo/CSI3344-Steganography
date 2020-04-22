@@ -25,7 +25,7 @@ struct Input {
 void verifyExtension(const string &file, const string &extension);
 Input getInput(int argc, char **argv);
 void readMessage(StegImage &image, const string &file);
-void writeMessage(StegImage &image, const string &message);
+void writeMessage(StegImage &image, const string &msgFile);
 
 int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
         string message;
-        getline(messageFile, message, 'n');
+        getline(messageFile, message, '\0');
         StegImage image(in.image);
         writeMessage(image, message);
     } else if (in.mode == DECODE) {
@@ -111,7 +111,14 @@ void readMessage(StegImage &image, const string &file) {
     messageFile.close();
 }
 
-void writeMessage(StegImage &image, const string &message) {
+void writeMessage(StegImage &image, const string &msgFile) {
+    ifstream file(msgFile);
+    if (!file) {
+        cerr << "Error: Could not open " << msgFile << endl;
+        exit(EXIT_FAILURE);
+    }
+    string message;
+    getline(file, message, '\0');
     unsigned int size = message.size();
 
     for (int i = 0; i < 4; ++i) {
