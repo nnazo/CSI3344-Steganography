@@ -150,7 +150,6 @@ void StegImage::flushAndClose(string outputFilename) {
     // Output ofstream
     ofstream outFile;
     outFile.open(outputFilename, ios::binary);
-    assert(!outFile == false);
 
     // Reopen input image file
     file.close();
@@ -158,10 +157,10 @@ void StegImage::flushAndClose(string outputFilename) {
     file.open();
 
     // Copying file header
+    char c_buffer;
     while (file.tellg() != start){
-        char c;
-        file.read(&c, 1);
-        outFile.write(&c, 1);
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
     }
     assert(!file == false);
 
@@ -170,14 +169,13 @@ void StegImage::flushAndClose(string outputFilename) {
 
     // Writing changed pixels
     for(char c : buffer){
-        outFile.write(&c, 1);
+        outFile.write(&c_buffer, 1);
     }
 
     // Writing unchanged pixels
     while (file){
-        char c;
-        file.read(&c, 1);
-        outFile.write(&c, 1);
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
     }
 
     outFile.flush();

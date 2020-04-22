@@ -16,6 +16,7 @@
 #include <cassert>
 #include <vector>
 
+
 #include "PNGConstants.h"
 
 using namespace std;
@@ -29,7 +30,7 @@ private:
 
     size_t width, height;
 
-    vector<char> buffer;
+    queue<char> buffer;
     streampos start;
     string filename;
 
@@ -53,20 +54,6 @@ public:
 };
 
 bool find(fstream&, const string&);
-
-template <class T>
-T flip(T toFlip) {
-    T buffer = 0;
-    const int MAX = sizeof(T);
-
-    for (int i = 0; i < MAX; i++) {
-        buffer <<= 8;
-        buffer |= (toFlip & 0xFF);
-        toFlip >>= 8;
-    }
-
-    return buffer;
-}
 
 
 #endif // STEG_IMAGE_H
