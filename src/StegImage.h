@@ -15,7 +15,8 @@
 #include <climits>
 #include <cassert>
 #include <vector>
-
+#include <string>
+#include <cmath>
 
 #include "PNGConstants.h"
 
@@ -26,13 +27,15 @@ private:
     fstream file;
     char bitDepth;
     bool inError;
-    bool hasAlpha;
 
     size_t width, height;
 
-    queue<char> buffer;
+    vector<char> buffer;
     streampos start;
     string filename;
+
+    template <class T>
+    T findNextT();
 
 public:
     StegImage(string);
@@ -55,5 +58,27 @@ public:
 
 bool find(fstream&, const string&);
 
+template <class T>
+T StegImage::findNextT() {
+    string tmp;
+    char c;
+
+    // Skip header material to find the next item
+    do {
+        c = file.get();
+
+        // Skip comments
+        if (c == '#') {
+            getline(file, tmp);
+            c = ' ';
+        }
+    } while (iswspace(c));
+    file.unget();
+
+    // Parse result
+    T result;
+    file >> result;
+    return result;
+}
 
 #endif // STEG_IMAGE_H

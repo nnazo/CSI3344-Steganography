@@ -12,42 +12,25 @@
 #include "StegImage.h"
 #include <iostream>
 
-StegImage::StegImage(string filename) : file(filename, fstream::in |
-    fstream::out | fstream::binary), filename(filename) {
-    char clrCode;
+StegImage::StegImage(string filename) : file(filename, fstream::in),
+                                        filename(filename) {
+    string magicNumber = findNextT<string>();
+    inError = magicNumber != MAGIC_NUMBER_STRING;
 
-    // First check: find the header chunk, if possible, in the file
-    inError = !find(file, HEADER);
-
-    // Get dimensions + bit depth
     if (!inError) {
-        // Read size
-        file.read((char*)&width, DIM_WIDTH);
-        file.read((char*)&height, DIM_WIDTH);
+        // Get width, height, depth
+        width = findNextT<int>();
+        height = findNextT<int>();
+        bitDepth = (char) (log2((double) findNextT<int>() + 1) + 0.5);
 
-        // Read bit depth and color code; detect alpha field
-        file.read(&bitDepth, DEPTH_TYPE_WIDTH);
-        file.read(&clrCode, DEPTH_TYPE_WIDTH);
-        hasAlpha = (clrCode & ALPHA_DETECT_MASK) != 0;
-
-        // Second check: not palette based
-        inError = clrCode == PALETTE;
-    }
-
-    // Parse dimensions
-    if (!inError) {
-        if (width >= TIPPING_POINT)
-            width = flip(width);
-        if (height >= TIPPING_POINT)
-            height = flip(height);
-
-        // Ensure there is an IDAT chunk (error check), then seek its end.
-        inError = !find(file, DATA);
-    }
-
-    // Save data section address
-    if (!inError)
+        // Find pixel block
+        findNextT<char>();
+        file.unget();
         start = file.tellg();
+    }
+
+    // Check for errors
+    inError = !file == true;
 }
 
 char StegImage::get() {
@@ -78,8 +61,8 @@ char StegImage::get() {
 
         // Prepare to read
         file.read((char*)&buffer, sizeof(char));
-        buffer <<= bitDepth - 1;
-        bitCntr = CHAR_BIT - bitDepth + 1;
+        buffer <<= DEPTH - 1;
+        bitCntr = CHAR_BIT - DEPTH + 1;
 
         // Read bits out of this byte
         do {
@@ -88,8 +71,8 @@ char StegImage::get() {
             result |= (buffer & mask) >> bitsRemaining;
 
             // Prepare to extract the next bit
-            buffer <<= bitDepth;
-            bitCntr -= bitDepth;
+            buffer <<= DEPTH;
+            bitCntr -= DEPTH;
         } while (bitCntr >= 0);
     }
 
@@ -142,8 +125,8 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(const string &s) {
-    return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
+bool StegImage::messageFits(const string& s) {
+    return (s.length() * CHAR_BIT) <= (width * height * 3);
 }
 
 void StegImage::flushAndClose(string outputFilename) {
@@ -154,7 +137,7 @@ void StegImage::flushAndClose(string outputFilename) {
     // Reopen input image file
     file.close();
     file.clear();
-    file.open();
+    file.open(filename);
 
     // Copying file header
     char c_buffer;
@@ -168,12 +151,12 @@ void StegImage::flushAndClose(string outputFilename) {
     file.seekg(buffer.size(), fstream::cur);
 
     // Writing changed pixels
-    for(char c : buffer){
+    for (auto c : buffer) {
         outFile.write(&c_buffer, 1);
     }
 
     // Writing unchanged pixels
-    while (file){
+    while (file) {
         file.read(&c_buffer, 1);
         outFile.write(&c_buffer, 1);
     }
