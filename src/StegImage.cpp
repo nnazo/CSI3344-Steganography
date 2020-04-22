@@ -15,7 +15,8 @@
 StegImage::StegImage(string filename) : file(filename, fstream::in),
                                         filename(filename) {
     string magicNumber = findNextT<string>();
-    inError = magicNumber != MAGIC_NUMBER_STRING;
+    inError = (magicNumber != MAGIC_NUMBER_STRING_LOWER) &&
+            (magicNumber != MAGIC_NUMBER_STRING_UPPER);
 
     if (!inError) {
         // Get width, height, depth
@@ -152,7 +153,7 @@ void StegImage::flushAndClose(string outputFilename) {
 
     // Writing changed pixels
     for (auto c : buffer) {
-        outFile.write(&c_buffer, 1);
+        outFile.write(&c, 1);
     }
 
     // Writing unchanged pixels
