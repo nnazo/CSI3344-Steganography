@@ -28,10 +28,15 @@ StegImage::StegImage(string filename) : file(filename, fstream::in),
         findNextT<char>();
         file.unget();
         start = file.tellg();
-    }
 
-    // Check for errors
-    inError = !file == true;
+        // Re-open in binary
+        file.close();
+        file.open(filename, fstream::in | fstream::binary);
+        file.seekg(start);
+
+        // Check for errors
+        inError = !file == true;
+    }
 }
 
 char StegImage::get() {
