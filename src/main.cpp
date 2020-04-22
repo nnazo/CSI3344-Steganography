@@ -9,6 +9,7 @@
  */
 
 #include <iostream>
+#include <string>
 #include <cstdlib>
 #include "StegImage.h"
 
@@ -22,7 +23,7 @@ struct Input {
     string msg;
 };
 
-void verifyExtension(const string &file, const string &extension);
+void verifyExtension(const string &file, const string &extension, int mode, int arg);
 Input getInput(int argc, char **argv);
 void readMessage(StegImage &image, const string &file);
 void writeMessage(StegImage &image, const string &msgFile);
@@ -48,9 +49,22 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void verifyExtension(const string &file, const string &extension) {
-    if (file.find(extension) != file.size() - 4) {
-        cerr << "usage: must provide a " << extension << " file" << endl;
+void verifyExtension(const string &file, const string &extension, int mode, int arg) {
+    if (file.find(extension) != file.size() - extension.size()) {
+        cerr << "usage: must provide a " << extension << " file for ";
+        switch (arg) {
+            case 1: cerr << "the input image file"; break;
+            case 2: {
+                if (mode == EMBED) {
+                    cerr << "the output image file";
+                } else {
+                    cerr << "the output message file";
+                }
+                break;
+            }
+            case 3: cerr << "the input message file"; break;
+        }
+        cerr << endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -80,11 +94,13 @@ Input getInput(int argc, char **argv) {
     }
 
     // Verify input PBM extension
-    verifyExtension(img, ".pbm");
-    if (mode == EMBED)
-        verifyExtension(out, ".pbm");
-    else
-        verifyExtension(msg, ".txt");
+    verifyExtension(img, ".pbm", 1, mode);
+    if (mode == EMBED) {
+        verifyExtension(out, ".pbm", 2, mode);
+        verifyExtension(msg, ".txt", 3, mode);
+    } else {
+        verifyExtension(msg, ".txt", 2, mode);
+    }
     return Input {
         mode,
         img,
@@ -117,9 +133,8 @@ void writeMessage(StegImage &image, const string &msgFile) {
         cerr << "Error: Could not open " << msgFile << endl;
         exit(EXIT_FAILURE);
     }
-    string message;
-    getline(file, message, '\0');
-    unsigned int size = message.size();
+    file.seekg(0, ios::end);
+    unsigned int size = file.tellg();
 
     for (int i = 0; i < 4; ++i) {
         unsigned char byte = 0x000000FF & size;
@@ -127,8 +142,8 @@ void writeMessage(StegImage &image, const string &msgFile) {
         size >>= 8;
     }
 
-    for (char ch : message) {
-        image.put(ch);
+    while (file) {
+        image.put(file.get());
     }
 
     image.flushAndClose(/*in.out*/);
