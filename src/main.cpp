@@ -26,14 +26,14 @@ struct Input {
 void verifyExtension(const string &file, const string &extension, int mode, int arg);
 Input getInput(int argc, char **argv);
 void readMessage(StegImage &image, const string &file);
-void writeMessage(StegImage &image, const string &msgFile);
+void writeMessage(StegImage &image, const string &msgFile, const string &out);
 
 int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
 
     if (in.mode == EMBED) {
         StegImage image(in.image);
-        writeMessage(image, in.msg);
+        writeMessage(image, in.msg, in.out);
     } else if (in.mode == DECODE) {
         StegImage image(in.image);
         readMessage(image, in.msg);
@@ -121,7 +121,7 @@ void readMessage(StegImage &image, const string &file) {
     messageFile.close();
 }
 
-void writeMessage(StegImage &image, const string &msgFile) {
+void writeMessage(StegImage &image, const string &msgFile, const string &out) {
     ifstream file(msgFile, ios::binary);
     if (!file) {
         cerr << "Error: Could not open " << msgFile << endl;
@@ -140,5 +140,5 @@ void writeMessage(StegImage &image, const string &msgFile) {
         image.put(file.get());
     }
 
-    image.flushAndClose(/*in.out*/);
+    image.flushAndClose(out);
 }
