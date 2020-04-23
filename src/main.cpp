@@ -134,7 +134,7 @@ Input getInput(int argc, char **argv) {
 }
 
 void readMessage(StegImage &image, const string &file) {
-    ofstream messageFile(file);
+    ofstream messageFile(file, ios::out | ios::binary);
     unsigned int length = 0;
 
     // Read in length of message

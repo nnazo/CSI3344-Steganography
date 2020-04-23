@@ -14,27 +14,39 @@
 
 StegImage::StegImage(string filename) : file(filename, fstream::in),
                                         filename(filename) {
+    // Determine if file is good
     string magicNumber = findNextT<string>();
     inError = (magicNumber != MAGIC_NUMBER_STRING_LOWER) &&
-            (magicNumber != MAGIC_NUMBER_STRING_UPPER);
+        (magicNumber != MAGIC_NUMBER_STRING_UPPER);
 
     if (!inError) {
         // Get width, height, depth
         width = findNextT<int>();
         height = findNextT<int>();
-        bitDepth = (char) (log2((double) findNextT<int>() + 1) + 0.5);
+        bitDepth = (char)(log2((double)findNextT<int>() + 1) + 0.5);
 
-        // Find pixel block
-        findNextT<char>();
-        file.unget();
-        start = file.tellg();
-
-        // Re-open in binary
+        // Re-open to find pixel section
         file.close();
         file.open(filename, fstream::in | fstream::binary);
-        file.seekg(start);
 
-        // Check for errors
+        string buffer;
+        int elementCount = 0;
+        size_t commentNdx;
+
+        // Skip header
+        while (elementCount < 4) {
+            file >> buffer;
+
+            commentNdx = buffer.find('#');
+            if (commentNdx != 0)
+                elementCount++;
+            if (commentNdx != string::npos)
+                getline(file, buffer);
+        }
+
+        // Finish loading pixel position and check for errors
+        file.get();
+        start = file.tellg();
         inError = !file == true;
     }
 }
@@ -147,7 +159,7 @@ void StegImage::flushAndClose(string outputFilename) {
 
     // Copying file header
     char c_buffer;
-    while (file.tellg() != start){
+    while (file.tellg() != start) {
         file.read(&c_buffer, 1);
         outFile.write(&c_buffer, 1);
     }
