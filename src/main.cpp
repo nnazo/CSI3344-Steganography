@@ -11,9 +11,16 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <vector>
+
+#include "PNGConstants.h"
 #include "StegImage.h"
 
 using namespace std;
+
+#define FAIL() exit(EXIT_FAILURE)
+#define BAD_MSG "Provided file is corrupted or invalid"
+#define badOpen() { cerr << BAD_MSG << endl; FAIL(); }
 
 enum Mode { EMBED, DECODE };
 struct Input {
@@ -23,7 +30,7 @@ struct Input {
     string msg;
 };
 
-void verifyExtension(const string &file, const string &extension, int mode, int arg);
+void verifyExtension(const string& file, const vector<string>& extensions, int mode, int arg);
 Input getInput(int argc, char **argv);
 void readMessage(StegImage &image, const string &file);
 void writeMessage(StegImage &image, const string &msgFile, const string &out);
@@ -33,18 +40,38 @@ int main(int argc, char **argv) {
 
     if (in.mode == EMBED) {
         StegImage image(in.image);
-        writeMessage(image, in.msg, in.out);
+        if (!image.isInError())
+            writeMessage(image, in.msg, in.out);
+        else
+            badOpen();
     } else if (in.mode == DECODE) {
         StegImage image(in.image);
-        readMessage(image, in.msg);
+        if (!image.isInError())
+            readMessage(image, in.msg);
+        else
+            badOpen();
     }
 
     return 0;
 }
 
-void verifyExtension(const string &file, const string &extension, int mode, int arg) {
-    if (file.find(extension) != file.size() - extension.size()) {
-        cerr << "usage: must provide a " << extension << " file for ";
+void verifyExtension(const string &file, const vector<string>& extensions, int mode, int arg) {
+    bool valid = false;
+
+    // Search extensions list for a valid extension
+    for (auto i = extensions.begin(); i != extensions.end() && !valid; i++)
+        valid = file.find(*i) == file.size() - i->size();
+
+    if (!valid) {
+        // Tell user valid file formats
+        cerr << "usage: must provide a " << extensions[0];
+        auto i = extensions.begin();
+        i++;
+        for (; i != extensions.end(); i++)
+            cerr << " or " << (*i);
+        cerr << " file for ";
+
+        // Alert the user which file was invalid
         switch (arg) {
             case 2: cerr << "the input image file"; break;
             case 3: {
@@ -59,7 +86,7 @@ void verifyExtension(const string &file, const string &extension, int mode, int 
             default: cerr << "unspecified argument";
         }
         cerr << endl;
-        exit(EXIT_FAILURE);
+        FAIL();
     }
 }
 
@@ -68,11 +95,14 @@ Input getInput(int argc, char **argv) {
     if (argc < 4 || argc > 5) {
         cerr << R"(usage: ./CSI3344_Steganography -e "img.pbm" "steg.pbm" "message.txt")" << endl;
         cerr << R"(       ./CSI3344_Steganography -d "steg.pbm" "message.txt")" << endl;
-        exit(EXIT_FAILURE);
+        FAIL();
     }
 
     Mode mode;
     string flag, img, out, msg;
+    const vector<string> ACCEPTED_IMG_FORMATS = { ".ppm", ".pbm" };
+    const vector<string> ACCEPTED_MSG_FORMATS = { ".txt", ".rtf" };
+
     flag = argv[1];
     img = argv[2];
     if (argc == 5 && flag == "-e") {
@@ -84,16 +114,16 @@ Input getInput(int argc, char **argv) {
         mode = DECODE;
     } else {
         cerr << "usage: must provide -e or -d flag" << endl;
-        exit(EXIT_FAILURE);
+        FAIL();
     }
 
-    // Verify input PBM extension
-    verifyExtension(img, ".pbm", 2, mode);
+    // Verify input extensions indicate valid files
+    verifyExtension(img, ACCEPTED_IMG_FORMATS, 2, mode);
     if (mode == EMBED) {
-        verifyExtension(out, ".pbm", 3, mode);
-        verifyExtension(msg, ".txt", 4, mode);
+        verifyExtension(out, ACCEPTED_IMG_FORMATS, 3, mode);
+        verifyExtension(msg, ACCEPTED_MSG_FORMATS, 4, mode);
     } else {
-        verifyExtension(msg, ".txt", 3, mode);
+        verifyExtension(msg, ACCEPTED_MSG_FORMATS, 3, mode);
     }
     return Input {
         mode,
@@ -107,13 +137,16 @@ void readMessage(StegImage &image, const string &file) {
     ofstream messageFile(file);
     unsigned int length = 0;
 
+    // Read in length of message
     for (int i = 0; i < 4; ++i) {
         unsigned int byte = image.get() << (8 * i);
         length |= byte;
     }
 
+    // Read in message
+    char ch;
     for (unsigned int i = 0; i < length; ++i) {
-        char ch = image.get();
+        ch = image.get();
         messageFile << ch;
         cout << ch;
     }
@@ -123,26 +156,40 @@ void readMessage(StegImage &image, const string &file) {
 
 void writeMessage(StegImage &image, const string &msgFile, const string &out) {
     ifstream file(msgFile, ios::binary);
+
+    // Ensure valid file
     if (!file) {
         cerr << "Error: Could not open " << msgFile << endl;
-        exit(EXIT_FAILURE);
+        FAIL();
     }
+
+    // Prep for operation
     file.seekg(0, ios::end);
     unsigned int size = file.tellg();
+    unsigned char byte;
 
+    // Ensure that the message is not too long
+    if (!image.messageFits(size + 4)) {
+        cerr << "Error: Message does not fit in file";
+        FAIL();
+    }
+
+    // Write the size of the message
     for (int i = 0; i < 4; ++i) {
-        unsigned char byte = 0x000000FF & size;
+        byte = 0x000000FF & size;
         image.put(byte);
         size >>= 8;
     }
 
+    // Write the message's characters
     file.seekg(0, ios::beg);
     while (file) {
-        char ch;
-        file.read(&ch, 1);
-        image.put(ch);
+        file.read((char*) &byte, 1);
+        image.put(byte);
     }
 
+    // End write
     file.close();
     image.flushAndClose(out);
+    cout << "Message embed successful" << endl;
 }

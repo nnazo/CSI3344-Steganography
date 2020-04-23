@@ -103,7 +103,7 @@ void StegImage::put(char byte) {
     }
     // Loop until all bits in the character have been embedded.
     char data;
-    size_t bitsPut = 0, bitPos;
+    size_t bitsPut = 0;
 
     // Prep to write
     while (bitsPut < CHAR_BIT) {
@@ -131,8 +131,8 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(const string& s) {
-    return (s.length() * CHAR_BIT) <= (width * height * 3);
+bool StegImage::messageFits(size_t length) {
+    return (length * CHAR_BIT) <= (width * height * 3);
 }
 
 void StegImage::flushAndClose(string outputFilename) {
@@ -143,7 +143,7 @@ void StegImage::flushAndClose(string outputFilename) {
     // Reopen input image file
     file.close();
     file.clear();
-    file.open(filename);
+    file.open(filename, ios::in | ios::binary);
 
     // Copying file header
     char c_buffer;
@@ -180,7 +180,7 @@ void StegImage::flushAndClose(string outputFilename) {
  * Returns: whether the string was found.
  */
 bool find(fstream& in, const string& searchString) {
-    int i = 0;
+    size_t i = 0;
     char ch;
 
     // Search for 'searchString'

@@ -49,11 +49,13 @@ public:
 
     void put(char);
 
-    bool messageFits(const string&);
+    bool messageFits(size_t);
 
     void flushAndClose(string);
 
-    void seekNextIdat();
+    bool isInError() {
+        return inError;
+    }
 };
 
 bool find(fstream&, const string&);
