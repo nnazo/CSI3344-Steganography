@@ -128,12 +128,13 @@ void StegImage::put(char byte) {
         }
         // Read the byte containing low order bit(s)
         file.read(&data, 1);
-        for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT; bitPos -= depth, byte >>= 1) {
+        for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT;
+                bitPos -= depth, byte >>= 1) {
             // Shift left to get a zero bit in the correct bit position
             char clearBitMask = 0xFE << (bitPos - depth);
             // Create a mask for pos to fill one's where zeros got filled
             unsigned char correctionMask = 0xFF >> (CHAR_BIT - bitPos + depth);
-            // Fill with ones where zeros got filled, except for the bit position
+            // Fill with ones where zeros got filled, except at the bit position
             clearBitMask |= correctionMask;
             // Move the low order bit of the byte to the bit position
             char mask = (byte & 1) << (bitPos - depth);

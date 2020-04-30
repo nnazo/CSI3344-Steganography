@@ -29,7 +29,8 @@ struct Input {
     string msg;
 };
 
-void verifyExtension(const string& file, const vector<string>& extensions, int mode, int arg);
+void verifyExtension(const string& file, const vector<string>& extensions,
+        int mode, int arg);
 Input getInput(int argc, char **argv);
 void readMessage(StegImage &image, const string &file);
 void writeMessage(StegImage &image, const string &msgFile, const string &out);
@@ -54,7 +55,8 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void verifyExtension(const string &file, const vector<string>& extensions, int mode, int arg) {
+void verifyExtension(const string &file, const vector<string>& extensions,
+        int mode, int arg) {
     bool valid = false;
 
     // Search extensions list for a valid extension
@@ -92,8 +94,10 @@ void verifyExtension(const string &file, const vector<string>& extensions, int m
 Input getInput(int argc, char **argv) {
     // Check number of arguments
     if (argc < 4 || argc > 5) {
-        cerr << R"(usage: ./CSI3344_Steganography -e "img.pbm" "steg.pbm" "message.txt")" << endl;
-        cerr << R"(       ./CSI3344_Steganography -d "steg.pbm" "message.txt")" << endl;
+        cerr << R"(usage: ./CSI3344_Steganography -e "img.pbm" )"
+             << R"("steg.pbm" "message.txt" "steg.pbm" "message.txt")" << endl;
+        cerr << R"(       ./CSI3344_Steganography -d "steg.pbm" "message.txt")";
+        cerr << endl;
         FAIL();
     }
 
