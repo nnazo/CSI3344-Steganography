@@ -3,9 +3,9 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
 #ifndef STEG_IMAGE_H
@@ -13,15 +13,20 @@
 
 #include <fstream>
 #include <climits>
-#include <cassert>
 #include <vector>
 #include <string>
 #include <cmath>
 
-#include "PNGConstants.h"
-
 using namespace std;
 
+// Identifies the PPM file type we need
+#define MAGIC_NUMBER_STRING_LOWER "p6"
+#define MAGIC_NUMBER_STRING_UPPER "P6"
+
+/*
+ * Class that handles opening and embedding information in or extracting
+ * information from a PBP image.
+ */
 class StegImage {
 private:
     fstream file;
@@ -40,22 +45,17 @@ private:
 public:
     StegImage(string);
 
-    ~StegImage() {
-        if (file.is_open())
-            file.close();
-    }
+    ~StegImage();
 
     char get();
 
     void put(char);
 
-    bool messageFits(size_t);
+    bool messageFits(streamoff);
 
     void flushAndClose(string);
 
-    bool isInError() {
-        return inError;
-    }
+    bool isInError();
 };
 
 bool find(fstream&, const string&);

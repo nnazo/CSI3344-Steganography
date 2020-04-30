@@ -3,9 +3,9 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
 #include <iostream>
@@ -13,7 +13,6 @@
 #include <cstdlib>
 #include <vector>
 
-#include "PNGConstants.h"
 #include "StegImage.h"
 
 using namespace std;
@@ -164,8 +163,9 @@ void writeMessage(StegImage &image, const string &msgFile, const string &out) {
     }
 
     // Prep for operation
+    streamoff size = file.tellg();
     file.seekg(0, ios::end);
-    unsigned int size = file.tellg();
+    size = file.tellg() - size;
     unsigned char byte;
 
     // Ensure that the message is not too long

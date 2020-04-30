@@ -3,17 +3,15 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
-#include <climits>
 #include "StegImage.h"
-#include <iostream>
 
 StegImage::StegImage(string filename) : file(filename, fstream::in),
-                                        filename(filename) {
+filename(filename) {
     // Determine if file is good
     string magicNumber = findNextT<string>();
     inError = (magicNumber != MAGIC_NUMBER_STRING_LOWER) &&
@@ -49,6 +47,11 @@ StegImage::StegImage(string filename) : file(filename, fstream::in),
         start = file.tellg();
         inError = !file == true;
     }
+}
+
+StegImage::~StegImage() {
+    if (file.is_open())
+        file.close();
 }
 
 char StegImage::get() {
@@ -143,7 +146,7 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(size_t length) {
+bool StegImage::messageFits(streamoff length) {
     return (length * CHAR_BIT) <= (width * height * 3);
 }
 
@@ -163,7 +166,6 @@ void StegImage::flushAndClose(string outputFilename) {
         file.read(&c_buffer, 1);
         outFile.write(&c_buffer, 1);
     }
-    assert(!file == false);
 
     // Write data to Output file
     file.seekg(buffer.size(), fstream::cur);
@@ -213,4 +215,8 @@ bool find(fstream& in, const string& searchString) {
         return true;
     } else
         return false;
+}
+
+bool StegImage::isInError() {
+    return inError;
 }
