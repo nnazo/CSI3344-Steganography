@@ -3,100 +3,197 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
 #include <iostream>
+#include <string>
 #include <cstdlib>
+#include <vector>
+
 #include "StegImage.h"
 
 using namespace std;
 
+#define FAIL() exit(EXIT_FAILURE)
+#define BAD_MSG "Provided file is corrupted or invalid"
+#define badOpen() { cerr << BAD_MSG << endl; FAIL(); }
+
 enum Mode { EMBED, DECODE };
 struct Input {
     const Mode mode;
-    const string image;
-    const string out;
+    string image;
+    string out;
+    string msg;
 };
 
-void verifyPngExtension(string file);
+void verifyExtension(const string& file, const vector<string>& extensions,
+        int mode, int arg);
 Input getInput(int argc, char **argv);
-string readMessage(const StegImage &image, const string &file);
-void writeMessage(const StegImage &image, const string &message);
+void readMessage(StegImage &image, const string &file);
+void writeMessage(StegImage &image, const string &msgFile, const string &out);
 
 int main(int argc, char **argv) {
     Input in = getInput(argc, argv);
-    StegImage* image = new StegImage(in.image);
-
-    // Write test
-    string s = in.out;
-    for (char c : s)
-        image->put(c);
-    delete image;
-
-    // Read back
-    image = new StegImage(in.image);
-    for (int i = 0; i < s.length(); i++) {
-        char c2 = image->get();
-        cout << c2;
-    }
 
     if (in.mode == EMBED) {
-        // TODO
+        StegImage image(in.image);
+        if (!image.isInError())
+            writeMessage(image, in.msg, in.out);
+        else
+            badOpen();
     } else if (in.mode == DECODE) {
-        // TODO
+        StegImage image(in.image);
+        if (!image.isInError())
+            readMessage(image, in.msg);
+        else
+            badOpen();
     }
+
     return 0;
 }
 
-void verifyPngExtension(string file) {
-    if (file.find(".png") != file.size() - 4) {
-        cerr << "usage: must provide a PNG image to embed a message" << endl;
-        exit(EXIT_FAILURE);
+void verifyExtension(const string &file, const vector<string>& extensions,
+        int mode, int arg) {
+    bool valid = false;
+
+    // Search extensions list for a valid extension
+    for (auto i = extensions.begin(); i != extensions.end() && !valid; i++)
+        valid = file.find(*i) == file.size() - i->size();
+
+    if (!valid) {
+        // Tell user valid file formats
+        cerr << "usage: must provide a " << extensions[0];
+        auto i = extensions.begin();
+        i++;
+        for (; i != extensions.end(); i++)
+            cerr << " or " << (*i);
+        cerr << " file for ";
+
+        // Alert the user which file was invalid
+        switch (arg) {
+            case 2: cerr << "the input image file"; break;
+            case 3: {
+                if (mode == EMBED) {
+                    cerr << "the output image file";
+                } else {
+                    cerr << "the output message file";
+                }
+                break;
+            }
+            case 4: cerr << "the input message file"; break;
+            default: cerr << "unspecified argument";
+        }
+        cerr << endl;
+        FAIL();
     }
 }
 
 Input getInput(int argc, char **argv) {
     // Check number of arguments
-    if (argc != 4) {
-        cerr << R"(usage: ./CSI3344_Steganography -e "img.png" "message")" << endl;
-        cerr << R"(       ./CSI3344_Steganography -d "steg.png" "message.txt")" << endl;
-        exit(EXIT_FAILURE);
+    if (argc < 4 || argc > 5) {
+        cerr << R"(usage: ./CSI3344_Steganography -e "img.pbm" )"
+             << R"("steg.pbm" "message.txt" "steg.pbm" "message.txt")" << endl;
+        cerr << R"(       ./CSI3344_Steganography -d "steg.pbm" "message.txt")";
+        cerr << endl;
+        FAIL();
     }
 
     Mode mode;
-    string flag = argv[1];
-    string img = argv[2];
-    string out = argv[3];
+    string flag, img, out, msg;
+    const vector<string> ACCEPTED_IMG_FORMATS = { ".ppm", ".pbm" };
+    const vector<string> ACCEPTED_MSG_FORMATS = { ".txt", ".rtf" };
 
-    // Verify input PNG filename
-    verifyPngExtension(img);
-
-    // Check flag mode
-    if (flag == "-e") {
+    flag = argv[1];
+    img = argv[2];
+    if (argc == 5 && flag == "-e") {
+        out = argv[3];
+        msg = argv[4];
         mode = EMBED;
-    } else if (flag == "-d") {
+    } else if (argc == 4 && flag == "-d") {
+        msg = argv[3];
         mode = DECODE;
-        verifyPngExtension(out);
     } else {
         cerr << "usage: must provide -e or -d flag" << endl;
-        exit(EXIT_FAILURE);
+        FAIL();
     }
 
+    // Verify input extensions indicate valid files
+    verifyExtension(img, ACCEPTED_IMG_FORMATS, 2, mode);
+    if (mode == EMBED) {
+        verifyExtension(out, ACCEPTED_IMG_FORMATS, 3, mode);
+        verifyExtension(msg, ACCEPTED_MSG_FORMATS, 4, mode);
+    } else {
+        verifyExtension(msg, ACCEPTED_MSG_FORMATS, 3, mode);
+    }
     return Input {
         mode,
         img,
         out,
+        msg,
     };
 }
 
-string readMessage(const StegImage &image, const string &file) {
-    // TODO
-    return "";
+void readMessage(StegImage &image, const string &file) {
+    ofstream messageFile(file, ios::out | ios::binary);
+    unsigned int length = 0;
+
+    // Read in length of message
+    for (int i = 0; i < 4; ++i) {
+        unsigned int byte = image.get() << (8 * i);
+        length |= byte;
+    }
+
+    // Read in message
+    char ch;
+    for (unsigned int i = 0; i < length; ++i) {
+        ch = image.get();
+        messageFile << ch;
+        cout << ch;
+    }
+
+    messageFile.close();
 }
 
-void writeMessage(const StegImage &image, const string &message) {
-    // TODO
+void writeMessage(StegImage &image, const string &msgFile, const string &out) {
+    ifstream file(msgFile, ios::binary);
+
+    // Ensure valid file
+    if (!file) {
+        cerr << "Error: Could not open " << msgFile << endl;
+        FAIL();
+    }
+
+    // Prep for operation
+    streamoff size = file.tellg();
+    file.seekg(0, ios::end);
+    size = file.tellg() - size;
+    unsigned char byte;
+
+    // Ensure that the message is not too long
+    if (!image.messageFits(size + 4)) {
+        cerr << "Error: Message does not fit in file";
+        FAIL();
+    }
+
+    // Write the size of the message
+    for (int i = 0; i < 4; ++i) {
+        byte = 0x000000FF & size;
+        image.put(byte);
+        size >>= 8;
+    }
+
+    // Write the message's characters
+    file.seekg(0, ios::beg);
+    while (file) {
+        file.read((char*) &byte, 1);
+        image.put(byte);
+    }
+
+    // End write
+    file.close();
+    image.flushAndClose(out);
+    cout << "Message embed successful" << endl;
 }

@@ -126,3 +126,7 @@ Debug/*
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+
+# Images
+*.ppm
+*.pbm

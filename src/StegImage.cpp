@@ -3,51 +3,55 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
-#include <climits>
 #include "StegImage.h"
-#include <iostream>
 
-StegImage::StegImage(string filename) : file(filename, fstream::in |
-    fstream::out | fstream::binary), filename(filename) {
-    char clrCode;
+StegImage::StegImage(string filename) : file(filename, fstream::in),
+filename(filename) {
+    // Determine if file is good
+    string magicNumber = findNextT<string>();
+    inError = (magicNumber != MAGIC_NUMBER_STRING_LOWER) &&
+        (magicNumber != MAGIC_NUMBER_STRING_UPPER);
 
-    // First check: find the header chunk, if possible, in the file
-    inError = !find(file, HEADER);
-
-    // Get dimensions + bit depth
     if (!inError) {
-        // Read size
-        file.read((char*)&width, DIM_WIDTH);
-        file.read((char*)&height, DIM_WIDTH);
+        // Get width, height, depth
+        width = findNextT<int>();
+        height = findNextT<int>();
+        bitDepth = (char)(log2((double)findNextT<int>() + 1) + 0.5);
 
-        // Read bit depth and color code; detect alpha field
-        file.read(&bitDepth, DEPTH_TYPE_WIDTH);
-        file.read(&clrCode, DEPTH_TYPE_WIDTH);
-        hasAlpha = (clrCode & ALPHA_DETECT_MASK) != 0;
+        // Re-open to find pixel section
+        file.close();
+        file.open(filename, fstream::in | fstream::binary);
 
-        // Second check: not palette based
-        inError = clrCode == PALETTE;
-    }
+        string buffer;
+        int elementCount = 0;
+        size_t commentNdx;
 
-    // Parse dimensions
-    if (!inError) {
-        if (width >= TIPPING_POINT)
-            width = flip(width);
-        if (height >= TIPPING_POINT)
-            height = flip(height);
+        // Skip header
+        while (elementCount < 4) {
+            file >> buffer;
 
-        // Ensure there is an IDAT chunk (error check), then seek its end.
-        inError = !find(file, DATA);
-    }
+            commentNdx = buffer.find('#');
+            if (commentNdx != 0)
+                elementCount++;
+            if (commentNdx != string::npos)
+                getline(file, buffer);
+        }
 
-    // Save data section address
-    if (!inError)
+        // Finish loading pixel position and check for errors
+        file.get();
         start = file.tellg();
+        inError = !file == true;
+    }
+}
+
+StegImage::~StegImage() {
+    if (file.is_open())
+        file.close();
 }
 
 char StegImage::get() {
@@ -78,8 +82,8 @@ char StegImage::get() {
 
         // Prepare to read
         file.read((char*)&buffer, sizeof(char));
-        buffer <<= bitDepth - 1;
-        bitCntr = CHAR_BIT - bitDepth + 1;
+        buffer <<= DEPTH - 1;
+        bitCntr = CHAR_BIT - DEPTH + 1;
 
         // Read bits out of this byte
         do {
@@ -88,8 +92,8 @@ char StegImage::get() {
             result |= (buffer & mask) >> bitsRemaining;
 
             // Prepare to extract the next bit
-            buffer <<= bitDepth;
-            bitCntr -= bitDepth;
+            buffer <<= DEPTH;
+            bitCntr -= DEPTH;
         } while (bitCntr >= 0);
     }
 
@@ -114,7 +118,7 @@ void StegImage::put(char byte) {
     }
     // Loop until all bits in the character have been embedded.
     char data;
-    size_t bitsPut = 0, bitPos;
+    size_t bitsPut = 0;
 
     // Prep to write
     while (bitsPut < CHAR_BIT) {
@@ -124,12 +128,13 @@ void StegImage::put(char byte) {
         }
         // Read the byte containing low order bit(s)
         file.read(&data, 1);
-        for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT; bitPos -= depth, byte >>= 1) {
+        for (int bitPos = CHAR_BIT; bitPos - depth > -1 && bitsPut < CHAR_BIT;
+                bitPos -= depth, byte >>= 1) {
             // Shift left to get a zero bit in the correct bit position
             char clearBitMask = 0xFE << (bitPos - depth);
             // Create a mask for pos to fill one's where zeros got filled
             unsigned char correctionMask = 0xFF >> (CHAR_BIT - bitPos + depth);
-            // Fill with ones where zeros got filled, except for the bit position
+            // Fill with ones where zeros got filled, except at the bit position
             clearBitMask |= correctionMask;
             // Move the low order bit of the byte to the bit position
             char mask = (byte & 1) << (bitPos - depth);
@@ -142,23 +147,45 @@ void StegImage::put(char byte) {
     }
 }
 
-bool StegImage::messageFits(const string &s) {
-    return (s.length() * CHAR_BIT) <= (width*height*(hasAlpha ? 4 : 3));
+bool StegImage::messageFits(streamoff length) {
+    return (length * CHAR_BIT) <= (width * height * 3);
 }
 
-void StegImage::flushAndClose() {
-    // Create write handle
+void StegImage::flushAndClose(string outputFilename) {
+    // Output ofstream
+    ofstream outFile;
+    outFile.open(outputFilename, ios::binary);
+
+    // Reopen input image file
     file.close();
     file.clear();
-    file.open(filename, ios::ate | ios::in | ios::out | ios::binary);
-    file.seekp(start, ios::beg);
-    assert(!file == false);
+    file.open(filename, ios::in | ios::binary);
 
-    // Write data
-    for (char c : buffer)
-        file.write(&c, 1);
-    file.flush();
+    // Copying file header
+    char c_buffer;
+    while (file.tellg() != start) {
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
+    }
+
+    // Write data to Output file
+    file.seekg(buffer.size(), fstream::cur);
+
+    // Writing changed pixels
+    for (auto c : buffer) {
+        outFile.write(&c, 1);
+    }
+
+    // Writing unchanged pixels
+    while (file) {
+        file.read(&c_buffer, 1);
+        outFile.write(&c_buffer, 1);
+    }
+
+    outFile.flush();
+    outFile.close();
     file.close();
+    file.clear();
 }
 
 /*
@@ -168,7 +195,7 @@ void StegImage::flushAndClose() {
  * Returns: whether the string was found.
  */
 bool find(fstream& in, const string& searchString) {
-    int i = 0;
+    size_t i = 0;
     char ch;
 
     // Search for 'searchString'
@@ -189,4 +216,8 @@ bool find(fstream& in, const string& searchString) {
         return true;
     } else
         return false;
+}
+
+bool StegImage::isInError() {
+    return inError;
 }

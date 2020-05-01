@@ -3,9 +3,9 @@
  * Assignment Title: Image Steganography
  * Assignment Description: This file contains the code for a simple
  *                         steganographic message embed command-line tool.
- * Due Date: INSERT_WHEN_KNOWN
+ * Due Date: 5/1/2020
  * Date Created: 3/26/2020
- * Date Last Modified: 3/26/2020
+ * Date Last Modified: 4/30/2020
  */
 
 #ifndef STEG_IMAGE_H
@@ -13,19 +13,25 @@
 
 #include <fstream>
 #include <climits>
-#include <cassert>
 #include <vector>
-
-#include "PNGConstants.h"
+#include <string>
+#include <cmath>
 
 using namespace std;
 
+// Identifies the PPM file type we need
+#define MAGIC_NUMBER_STRING_LOWER "p6"
+#define MAGIC_NUMBER_STRING_UPPER "P6"
+
+/*
+ * Class that handles opening and embedding information in or extracting
+ * information from a PBP image.
+ */
 class StegImage {
 private:
     fstream file;
     char bitDepth;
     bool inError;
-    bool hasAlpha;
 
     size_t width, height;
 
@@ -33,42 +39,48 @@ private:
     streampos start;
     string filename;
 
+    template <class T>
+    T findNextT();
+
 public:
     StegImage(string);
 
-    ~StegImage() {
-        if (file.is_open() && buffer.size() > 0)
-            flushAndClose();
-        else if (file.is_open())
-            file.close();
-    }
+    ~StegImage();
 
     char get();
 
     void put(char);
 
-    bool messageFits(const string&);
+    bool messageFits(streamoff);
 
-    void flushAndClose();
+    void flushAndClose(string);
 
-    void seekNextIdat();
+    bool isInError();
 };
 
 bool find(fstream&, const string&);
 
 template <class T>
-T flip(T toFlip) {
-    T buffer = 0;
-    const int MAX = sizeof(T);
+T StegImage::findNextT() {
+    string tmp;
+    char c;
 
-    for (int i = 0; i < MAX; i++) {
-        buffer <<= 8;
-        buffer |= (toFlip & 0xFF);
-        toFlip >>= 8;
-    }
+    // Skip header material to find the next item
+    do {
+        c = file.get();
 
-    return buffer;
+        // Skip comments
+        if (c == '#') {
+            getline(file, tmp);
+            c = ' ';
+        }
+    } while (iswspace(c));
+    file.unget();
+
+    // Parse result
+    T result;
+    file >> result;
+    return result;
 }
-
 
 #endif // STEG_IMAGE_H
