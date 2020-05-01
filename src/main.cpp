@@ -141,8 +141,11 @@ void readMessage(StegImage &image, const string &file) {
     unsigned int length = 0;
 
     // Read in length of message
-    for (int i = 0; i < 4; ++i) {
-        unsigned int byte = image.get() << (8 * i);
+    unsigned char res;
+    unsigned int byte;
+    for (unsigned int i = 0; i < 4; ++i) {
+        res = image.get();
+        byte = ((unsigned int) res) << (8 * i);
         length |= byte;
     }
 

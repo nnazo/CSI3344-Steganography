@@ -55,14 +55,14 @@ StegImage::~StegImage() {
 }
 
 char StegImage::get() {
-    char result = '\0';
+    unsigned char result = '\0';
     int bitsRemaining = CHAR_BIT;
 
     unsigned char buffer;
     int bitCntr;
 
     // Create a mask to isolate the high-order bit
-    char mask = 0x1;
+    unsigned char mask = 0x1;
     mask <<= CHAR_BIT - 1;
 
     // Compute whether a certain number of bytes need to be skipped.
